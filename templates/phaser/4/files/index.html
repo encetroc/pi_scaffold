@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{game_title}}</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #101018;
+      }
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      canvas {
+        display: block;
+      }
+      #error-banner {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        padding: 10px 16px;
+        background: #b03030;
+        color: #ffffff;
+        font-family: monospace;
+        font-size: 14px;
+        z-index: 10;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game-container"></div>
+    <div id="error-banner" hidden></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
