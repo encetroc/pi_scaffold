@@ -12,9 +12,14 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 import {
+  addRemote,
+  commitInitial,
+  gitInit,
+  initAndCommit,
   loadManifest,
   resolveVariables,
   scaffold,
+  verify,
 } from "../src/engine/index.js";
 
 export default function scafstak(pi: ExtensionAPI) {
@@ -40,4 +45,9 @@ export default function scafstak(pi: ExtensionAPI) {
   void loadManifest;
   void resolveVariables;
   void scaffold;
+  void gitInit;
+  void commitInitial;
+  void initAndCommit;
+  void addRemote;
+  void verify;
 }
