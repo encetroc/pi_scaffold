@@ -39,3 +39,19 @@ export {
  FoundationError,
  generateFoundation,
 } from "./foundation.js";
+
+export {
+ GitError,
+ INITIAL_COMMIT_MESSAGE,
+ addRemote,
+ commitInitial,
+ gitInit,
+ initAndCommit,
+} from "./git.js";
+
+export {
+ verify,
+ type VerificationReport,
+ type VerifyCheckResult,
+ type VerifyDepth,
+} from "./verify.js";
