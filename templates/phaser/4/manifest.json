@@ -1,0 +1,46 @@
+{
+  "name": "phaser-4",
+  "stack": "phaser",
+  "frameworkVersion": "4",
+  "language": "javascript",
+  "buildTargets": ["web"],
+  "questions": [
+    {
+      "id": "game_title",
+      "label": "Game title",
+      "default": "{{project_name}}"
+    },
+    {
+      "id": "canvas_width",
+      "label": "Canvas width",
+      "default": "960"
+    },
+    {
+      "id": "canvas_height",
+      "label": "Canvas height",
+      "default": "480"
+    },
+    {
+      "id": "package_name",
+      "label": "npm package name",
+      "default": "{{project_name_kebab}}"
+    }
+  ],
+  "variables": {
+    "project_name_kebab": "{{project_name}} -> kebab-case"
+  },
+  "commands": {
+    "run": "./scripts/run.sh",
+    "test": "./scripts/test.sh",
+    "verifyCheck": ["node", "--version"],
+    "verifyBuild": ["./scripts/verify.sh"]
+  },
+  "gettingStarted": "getting-started.md",
+  "references": [
+    "https://docs.phaser.io/phaser/getting-started/set-up-dev-environment",
+    "https://docs.phaser.io/phaser/concepts/game",
+    "https://github.com/phaserjs/template-vite",
+    "https://nodejs.org/en/download",
+    "https://vitejs.dev/"
+  ]
+}
