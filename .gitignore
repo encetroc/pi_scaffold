@@ -1,0 +1,18 @@
+# Node
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+
+# Rust
+target/
+
+# OS
+.DS_Store
+
+# Local state
+*.local
+.env
+
+# Scratch / local trackers
+.scratch/
