@@ -1,0 +1,17 @@
+{
+  "name": "minimal",
+  "stack": "teststack",
+  "frameworkVersion": "1.0",
+  "language": "rust",
+  "questions": [
+    { "id": "window_title", "label": "Window title", "default": "{{project_name}}" },
+    { "id": "crate_name", "label": "Crate name", "default": "{{project_name_snake}}" }
+  ],
+  "variables": {
+    "project_name_snake": "{{project_name}} -> snake_case"
+  },
+  "commands": {
+    "run": "./scripts/run.sh",
+    "test": "./scripts/test.sh"
+  }
+}
