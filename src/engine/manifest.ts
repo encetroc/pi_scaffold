@@ -168,7 +168,10 @@ export function validateManifest(raw: unknown): Manifest {
     }
   }
 
-  if (raw.gettingStarted !== undefined && typeof raw.gettingStarted !== "string") {
+  if (
+    raw.gettingStarted !== undefined &&
+    typeof raw.gettingStarted !== "string"
+  ) {
     fail(`"gettingStarted" must be a string`);
   }
 

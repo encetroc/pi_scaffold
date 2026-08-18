@@ -121,16 +121,19 @@ export function substituteTemplate(
   vars: Record<string, string>,
   context = "template",
 ): string {
-  return template.replace(/\{\{\s*([^{}]+?)\s*\}\}/g, (_match, name: string) => {
-    const key = name.trim();
-    const value = vars[key];
-    if (value === undefined) {
-      const known = Object.keys(vars).join(", ");
-      throw new VariableError(
-        `unknown variable "{{${key}}}" in ${context}` +
-          (known ? ` (known: ${known})` : " (no variables defined)"),
-      );
-    }
-    return value;
-  });
+  return template.replace(
+    /\{\{\s*([^{}]+?)\s*\}\}/g,
+    (_match, name: string) => {
+      const key = name.trim();
+      const value = vars[key];
+      if (value === undefined) {
+        const known = Object.keys(vars).join(", ");
+        throw new VariableError(
+          `unknown variable "{{${key}}}" in ${context}` +
+            (known ? ` (known: ${known})` : " (no variables defined)"),
+        );
+      }
+      return value;
+    },
+  );
 }

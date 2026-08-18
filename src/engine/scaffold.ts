@@ -8,11 +8,20 @@
  */
 
 import { readFileSync } from "node:fs";
-import { mkdir, readdir, readFile, writeFile, chmod, stat } from "node:fs/promises";
+import {
+  mkdir,
+  readdir,
+  readFile,
+  writeFile,
+  chmod,
+  stat,
+} from "node:fs/promises";
 import { join, relative, sep } from "node:path";
 
 import { parseManifest, type Manifest } from "./manifest.js";
+import { toPosix } from "./path.js";
 import { substituteTemplate } from "./variables.js";
+import { generateFoundation } from "./foundation.js";
 
 export class ScaffoldError extends Error {
   constructor(message: string) {
@@ -47,7 +56,9 @@ export function loadManifest(templateDir: string): Manifest {
 function substitutePath(relPath: string, vars: Record<string, string>): string {
   const segments = relPath.split(sep);
   return segments
-    .map((segment) => substituteTemplate(segment, vars, `filename "${relPath}"`))
+    .map((segment) =>
+      substituteTemplate(segment, vars, `filename "${relPath}"`),
+    )
     .join(sep);
 }
 
@@ -91,13 +102,19 @@ async function collectFiles(
   }
 }
 
-function toPosix(path: string): string {
-  return path.split(sep).join("/");
+export interface ScaffoldOptions {
+  /**
+   * Generate the FOUNDATION context layer (docs/ tree, AGENTS.md,
+   * tickets.md, .gitignore, test harness stub) after copying files.
+   * Default true. Disable only to test the copy primitive in isolation.
+   */
+  foundation?: boolean;
 }
 
 /**
- * Scaffold `manifest`'s `files/` tree from `templateDir` into `destDir`.
- * Returns the list of written relative paths.
+ * Scaffold `manifest`'s `files/` tree from `templateDir` into `destDir`,
+ * then generate the FOUNDATION context layer (unless `foundation: false`).
+ * Returns the list of written relative paths, in write order.
  *
  * Variable-substitution errors propagate unchanged (they are not "missing
  * files" errors); only a genuinely absent `files/` directory is wrapped.
@@ -107,6 +124,7 @@ export async function scaffold(
   templateDir: string,
   vars: Record<string, string>,
   destDir: string,
+  options: ScaffoldOptions = {},
 ): Promise<ScaffoldResult> {
   const filesDir = join(templateDir, "files");
 
@@ -147,6 +165,16 @@ export async function scaffold(
       });
     }
     written.push(toPosix(outRel));
+  }
+
+  if (options.foundation !== false) {
+    const foundationFiles = await generateFoundation(
+      manifest,
+      templateDir,
+      vars,
+      destDir,
+    );
+    written.push(...foundationFiles);
   }
 
   return { files: written };

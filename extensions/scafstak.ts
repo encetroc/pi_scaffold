@@ -11,7 +11,11 @@
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
-import { loadManifest, resolveVariables, scaffold } from "../src/engine/index.js";
+import {
+  loadManifest,
+  resolveVariables,
+  scaffold,
+} from "../src/engine/index.js";
 
 export default function scafstak(pi: ExtensionAPI) {
   pi.registerCommand("scafstak", {
