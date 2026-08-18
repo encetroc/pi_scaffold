@@ -8,7 +8,9 @@ const valid = {
   frameworkVersion: "0.19",
   language: "rust",
   buildTargets: ["native", "web"],
-  questions: [{ id: "window_title", label: "Window title", default: "{{project_name}}" }],
+  questions: [
+    { id: "window_title", label: "Window title", default: "{{project_name}}" },
+  ],
   variables: { project_name_snake: "{{project_name}} -> snake_case" },
   commands: {
     run: "./scripts/run.sh",

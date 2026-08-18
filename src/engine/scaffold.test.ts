@@ -1,4 +1,12 @@
-import { mkdtemp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import {
+  mkdtemp,
+  mkdir,
+  readFile,
+  readdir,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -20,7 +28,9 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  await Promise.all(tempDirs.splice(0).map((d) => rm(d, { recursive: true, force: true })));
+  await Promise.all(
+    tempDirs.splice(0).map((d) => rm(d, { recursive: true, force: true })),
+  );
 });
 
 const fixturesDir = join(process.cwd(), "test", "fixtures", "minimal");
@@ -48,11 +58,15 @@ describe("scaffold", () => {
     });
 
     const destDir = await makeTempDir();
-    const result = await scaffold(manifest, fixturesDir, allVars, destDir);
+    const result = await scaffold(manifest, fixturesDir, allVars, destDir, {
+      foundation: false,
+    });
 
     expect(result.files.sort()).toEqual([
       "README.md",
       "my_game/config.txt",
+      "scripts/run.sh",
+      "scripts/test.sh",
       "src/main.rs",
     ]);
 
@@ -62,7 +76,10 @@ describe("scaffold", () => {
     const main = await readFile(join(destDir, "src", "main.rs"), "utf8");
     expect(main).toBe("fn main() {}\n// crate: my_game\n");
 
-    const config = await readFile(join(destDir, "my_game", "config.txt"), "utf8");
+    const config = await readFile(
+      join(destDir, "my_game", "config.txt"),
+      "utf8",
+    );
     expect(config).toBe("name=my_game\n");
   });
 
@@ -70,9 +87,9 @@ describe("scaffold", () => {
     const manifest = loadManifest(fixturesDir);
     // window_title and crate_name are required in file content; omit them.
     const vars = resolveVariables(manifest, { project_name: "My Game" });
-    await expect(scaffold(manifest, fixturesDir, vars, tempRoot)).rejects.toThrow(
-      /unknown variable/,
-    );
+    await expect(
+      scaffold(manifest, fixturesDir, vars, tempRoot),
+    ).rejects.toThrow(/unknown variable/);
   });
 
   it("preserves executable mode on copied files", async () => {
@@ -94,7 +111,7 @@ describe("scaffold", () => {
 
     const manifest = loadManifest(tplDir);
     const destDir = await makeTempDir();
-    await scaffold(manifest, tplDir, {}, destDir);
+    await scaffold(manifest, tplDir, {}, destDir, { foundation: false });
 
     const copiedMode = (await stat(join(destDir, "run.sh"))).mode & 0o777;
     expect(copiedMode).toBe(0o755);
@@ -133,10 +150,21 @@ describe("scaffold", () => {
 
     const manifest = loadManifest(tplDir);
     const destDir = await makeTempDir();
-    const result = await scaffold(manifest, tplDir, { dir: "renamed" }, destDir);
+    const result = await scaffold(
+      manifest,
+      tplDir,
+      { dir: "renamed" },
+      destDir,
+      {
+        foundation: false,
+      },
+    );
 
     expect(result.files).toEqual(["renamed/sub/a.txt"]);
-    const content = await readFile(join(destDir, "renamed", "sub", "a.txt"), "utf8");
+    const content = await readFile(
+      join(destDir, "renamed", "sub", "a.txt"),
+      "utf8",
+    );
     expect(content).toBe("x\n");
   });
 
@@ -156,7 +184,9 @@ describe("scaffold", () => {
 
     const manifest = loadManifest(tplDir);
     const destDir = await makeTempDir();
-    const result = await scaffold(manifest, tplDir, {}, destDir);
+    const result = await scaffold(manifest, tplDir, {}, destDir, {
+      foundation: false,
+    });
 
     expect(result.files).toEqual(["real.txt"]);
     const entries = await readdir(destDir);

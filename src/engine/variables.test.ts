@@ -18,9 +18,9 @@ const manifest = (variables: Manifest["variables"]): Manifest => ({
 
 describe("substituteTemplate", () => {
   it("replaces every {{var}} occurrence", () => {
-    expect(
-      substituteTemplate("a {{x}} b {{x}} c", { x: "X" }),
-    ).toBe("a X b X c");
+    expect(substituteTemplate("a {{x}} b {{x}} c", { x: "X" })).toBe(
+      "a X b X c",
+    );
   });
 
   it("tolerates spaces inside braces", () => {
@@ -28,9 +28,9 @@ describe("substituteTemplate", () => {
   });
 
   it("errors loudly on unknown variables, listing known ones", () => {
-    expect(() =>
-      substituteTemplate("{{missing}}", { known: "k" }),
-    ).toThrow(/unknown variable "\{\{missing\}\}" .*known: known/);
+    expect(() => substituteTemplate("{{missing}}", { known: "k" })).toThrow(
+      /unknown variable "\{\{missing\}\}" .*known: known/,
+    );
   });
 });
 
@@ -83,10 +83,9 @@ describe("resolveVariables", () => {
 
   it("errors on unknown transforms, listing known ones", () => {
     expect(() =>
-      resolveVariables(
-        manifest({ snake: "{{project_name}} -> leetspeak" }),
-        { project_name: "My Game" },
-      ),
+      resolveVariables(manifest({ snake: "{{project_name}} -> leetspeak" }), {
+        project_name: "My Game",
+      }),
     ).toThrow(/unknown transform "leetspeak" \(known: snake_case/);
   });
 });
@@ -123,8 +122,8 @@ describe("transforms", () => {
 
 describe("VariableError type", () => {
   it("is thrown as VariableError", () => {
-    expect(() =>
-      resolveVariables(manifest({ x: "{{nope}}" }), {}),
-    ).toThrow(VariableError);
+    expect(() => resolveVariables(manifest({ x: "{{nope}}" }), {})).toThrow(
+      VariableError,
+    );
   });
 });

@@ -3,33 +3,39 @@
  */
 
 export {
-  ManifestError,
-  parseManifest,
-  validateManifest,
-  type Manifest,
-  type ManifestCommands,
-  type Question,
+ ManifestError,
+ parseManifest,
+ validateManifest,
+ type Manifest,
+ type ManifestCommands,
+ type Question,
 } from "./manifest.js";
 
 export {
-  QuestionError,
-  resolvedAnswers,
-  resolveQuestions,
-  type ResolvedQuestion,
+ QuestionError,
+ resolvedAnswers,
+ resolveQuestions,
+ type ResolvedQuestion,
 } from "./questions.js";
 
 export {
-  VariableError,
-  isTransformName,
-  resolveVariables,
-  substituteTemplate,
-  type Answers,
-  type TransformName,
+ VariableError,
+ isTransformName,
+ resolveVariables,
+ substituteTemplate,
+ type Answers,
+ type TransformName,
 } from "./variables.js";
 
 export {
-  ScaffoldError,
-  loadManifest,
-  scaffold,
-  type ScaffoldResult,
+ ScaffoldError,
+ loadManifest,
+ scaffold,
+ type ScaffoldOptions,
+ type ScaffoldResult,
 } from "./scaffold.js";
+
+export {
+ FoundationError,
+ generateFoundation,
+} from "./foundation.js";

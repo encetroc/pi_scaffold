@@ -14,7 +14,11 @@ const manifest: Manifest = {
   language: "rust",
   questions: [
     { id: "window_title", label: "Window title", default: "{{project_name}}" },
-    { id: "crate_name", label: "Crate name", default: "{{project_name_snake}}" },
+    {
+      id: "crate_name",
+      label: "Crate name",
+      default: "{{project_name_snake}}",
+    },
     { id: "plain", label: "Plain", default: "default-plain" },
   ],
   variables: { project_name_snake: "{{project_name}} -> snake_case" },
