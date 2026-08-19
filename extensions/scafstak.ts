@@ -20,6 +20,8 @@ import {
   type WizardUi,
 } from "./lib/wizard.js";
 
+import { runNewStack } from "./lib/newstack.js";
+
 import { templateRoot } from "./lib/root.js";
 import { registerAuthoringTools } from "./tools.js";
 
@@ -51,6 +53,28 @@ export default function scafstak(pi: ExtensionAPI) {
       const templatesDir = templateRoot(import.meta.url);
 
       try {
+        // Ticket #11: the AI authoring flow. The skeleton is created here;
+        // the kickoff message then hands the authoring work to the agent
+        // (research → fill → cite → dry-run verify).
+        if (argv[0] === "new-stack") {
+          const result = await runNewStack(ui, {
+            templatesDir,
+            args: argv.slice(1),
+          });
+          ctx.ui.notify(
+            `Template skeleton created at ${result.templateDir} — handing the authoring task to the agent.`,
+            "info",
+          );
+          ctx.ui.notify(
+            "The agent will research official docs, fill files/, write the cited getting-started, and dry-run verify. You review and commit.",
+            "info",
+          );
+          // Always triggers a turn; `followUp` is safe whether or not the
+          // agent is currently streaming (delivered once the turn drains).
+          pi.sendUserMessage(result.kickoff, { deliverAs: "followUp" });
+          return;
+        }
+
         const result = await runWizard(ui, {
           templatesDir,
           cwd: ctx.cwd,

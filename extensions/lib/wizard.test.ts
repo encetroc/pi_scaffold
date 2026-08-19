@@ -135,6 +135,11 @@ describe("completeArgs", () => {
     expect(items?.map((i) => i.value)).toEqual(["bevy"]);
   });
 
+  it("offers new-stack as an authoring subcommand mid-word", async () => {
+    const items = await completeArgs(dir, "new");
+    expect(items?.map((i) => i.value)).toEqual(["new-stack"]);
+  });
+
   it("offers versions of the chosen stack after a space", async () => {
     const items = await completeArgs(dir, "bevy ");
     expect(items?.map((i) => ({ value: i.value, label: i.label }))).toEqual([

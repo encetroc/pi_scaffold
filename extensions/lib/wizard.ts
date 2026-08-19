@@ -148,15 +148,18 @@ export async function completeArgs(
   } catch {
     return null;
   }
-  if (stacks.length === 0) return null;
 
   const tokens = argumentText.trimEnd().split(/\s+/).filter((t) => t.length > 0);
   const trailingSpace = /\s$/.test(argumentText);
 
   // First argument — the stack name (possibly mid-word, or just a space).
+  // `new-stack` (ticket #11) is offered as an authoring subcommand.
   if (tokens.length === 0 || (tokens.length === 1 && !trailingSpace)) {
     const prefix = tokens[0] ?? "";
     const matches = stacks.filter((s) => s.stack.startsWith(prefix));
+    if (prefix.length > 0 && "new-stack".startsWith(prefix)) {
+      return [{ value: "new-stack", label: "new-stack" }];
+    }
     if (matches.length === 0) return null;
     return matches.map((s) => ({ value: s.stack, label: s.stack }));
   }
