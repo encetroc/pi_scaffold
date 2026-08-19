@@ -1,7 +1,11 @@
-import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
+import { INITIAL_COMMIT_MESSAGE } from "../../src/engine/index.js";
 
 import {
   completeArgs,
@@ -12,14 +16,18 @@ import {
   type WizardUi,
 } from "./wizard.js";
 
+const execFileAsync = promisify(execFile);
+async function exec(
+  cmd: string,
+  args: string[],
+  cwd?: string,
+): Promise<{ stdout: string }> {
+  const { stdout } = await execFileAsync(cmd, args, cwd ? { cwd } : {});
+  return { stdout };
+}
+
 let tempRoot: string;
 const tempDirs: string[] = [];
-
-async function makeTempDir(): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), "scafstak-wizard-"));
-  tempDirs.push(dir);
-  return dir;
-}
 
 beforeEach(() => {
   tempRoot = makeTempRoot();
@@ -165,6 +173,7 @@ describe("runWizard", () => {
       undefined, // window_title -> default "My Demo"
       undefined, // crate_name -> default "my_demo"
       "yes", // summary confirm
+      "None (no remote)", // remote after first commit
       "skip", // verify -> skip
     ]);
 
@@ -209,6 +218,7 @@ describe("runWizard", () => {
       undefined, // window title default
       undefined, // crate name default
       "yes",
+      "None (no remote)",
       "skip",
     ]);
 
@@ -260,5 +270,56 @@ describe("runWizard", () => {
     await expect(
       runWizard(ui, { templatesDir, cwd: tempRoot, args: [] }),
     ).rejects.toThrow(/no templates/);
+  });
+});
+
+describe("runWizard remote (#9)", () => {
+  async function scaffoldWith(
+    script: Array<string | undefined>,
+  ): Promise<{ result: Awaited<ReturnType<typeof runWizard>>; dir: string }> {
+    const templatesDir = join(tempRoot, "templates");
+    const cwd = join(tempRoot, "out");
+    await mkdir(cwd, { recursive: true });
+    await writeTemplate(templatesDir);
+
+    const ui = new ScriptedUi([
+      "demo",
+      "My Demo",
+      undefined,
+      undefined,
+      undefined,
+      "yes",
+      ...script,
+      "skip",
+    ]);
+    const result = await runWizard(ui, {
+      templatesDir,
+      cwd,
+      args: [],
+    });
+    return { result, dir: resolve(cwd, "My Demo") };
+  }
+
+  it("defaults to no remote when the choice is None", async () => {
+    const { result } = await scaffoldWith(["None (no remote)"]);
+    expect(result.remote).toEqual({ choice: "none" });
+  });
+
+  it("treats a defer/dismiss at the remote prompt as no remote", async () => {
+    const { result } = await scaffoldWith([undefined]);
+    expect(result.remote).toEqual({ choice: "none" });
+  });
+
+  it("adds an existing URL and pushes the first commit to it", async () => {
+    // A local bare repo stands in for a real remote origin — no network.
+    const origin = join(tempRoot, "origin.git");
+    await exec("git", ["init", "--bare", origin]);
+
+    const { result, dir } = await scaffoldWith(["Add an existing URL", origin]);
+    expect(result.remote).toEqual({ choice: "url", url: origin });
+
+    // The scaffolded commit landed on the origin branch.
+    const { stdout } = await exec("git", ["log", "--oneline"], dir);
+    expect(stdout.trim()).toContain(INITIAL_COMMIT_MESSAGE);
   });
 });

@@ -10,7 +10,7 @@
  */
 
 import { readdir } from "node:fs/promises";
-import { join, resolve, sep } from "node:path";
+import { basename, join, resolve, sep } from "node:path";
 
 import {
   initAndCommit,
@@ -23,6 +23,11 @@ import {
   type VerificationReport,
   type VerifyDepth,
 } from "../../src/engine/index.js";
+
+import {
+  addAndPush,
+  createGitHubRepo,
+} from "./remote.js";
 
 /** UI seam. Matches the subset of `ctx.ui` the wizard needs. */
 export interface WizardUi {
@@ -60,12 +65,19 @@ export interface WizardConfig {
   args: string[];
 }
 
+/** What the wizard did with a remote after the first commit (ticket #9). */
+export type RemoteOutcome =
+  | { choice: "none" }
+  | { choice: "url"; url: string }
+  | { choice: "gh"; repoName: string; visibility: "public" | "private" };
+
 export interface WizardResult {
   manifest: Manifest;
   destDir: string;
   vars: Record<string, string>;
   files: string[];
   verification: VerificationReport;
+  remote: RemoteOutcome;
 }
 
 /** The post-scaffold next-steps printout. */
@@ -280,6 +292,35 @@ export async function runWizard(
   const scaffolded = await scaffold(manifest, templateDir, vars, destDir);
   await initAndCommit(destDir);
 
+  // Ticket #9: remote question after the first commit. "None" is the
+  // default — a cancel/decline amounts to no remote.
+  const remoteChoice = await ui.select("Remote after first commit:", [
+    "None (no remote)",
+    "Add an existing URL",
+    "Create a GitHub repo via gh and push",
+  ]);
+
+  let remote: RemoteOutcome = { choice: "none" };
+  if (remoteChoice === "Add an existing URL") {
+    const url = await ui.input("Existing remote URL");
+    if (url === undefined) throw new WizardCancelled("no remote URL");
+    const trimmed = url.trim();
+    if (trimmed.length === 0) {
+      throw new WizardCancelled("empty remote URL");
+    }
+    await addAndPush(destDir, trimmed);
+    remote = { choice: "url", url: trimmed };
+  } else if (remoteChoice === "Create a GitHub repo via gh and push") {
+    const defaultName = basename(resolve(destDir));
+    const repoName = (await ui.input("GitHub repo name", defaultName)) ?? defaultName;
+    const visibilityChoice =
+      (await ui.select("GitHub repo visibility:", ["Private", "Public"])) ??
+      "Private";
+    const visibility = visibilityChoice === "Public" ? "public" : "private";
+    await createGitHubRepo(destDir, repoName, visibility);
+    remote = { choice: "gh", repoName, visibility };
+  }
+
   const choice = await ui.select("Verify degree:", [
     "Light (toolchain check)",
     "Full (build)",
@@ -296,5 +337,6 @@ export async function runWizard(
     vars,
     files: scaffolded.files,
     verification,
+    remote,
   };
 }
