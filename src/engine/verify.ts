@@ -4,13 +4,15 @@
  * After a scaffold the user picks a verification depth; the engine produces a
  * deterministic report for any depth:
  *
- * - `skip`  — no verification runs; the report records that nothing was checked
- * - `light` — toolchain presence: runs the `commands.verifyCheck` command
- * - `full`  — build: runs the `commands.verifyBuild` command
+ * - `skip`    — no verification runs; the report records that nothing was checked
+ * - `light`   — toolchain presence: runs the `commands.verifyCheck` command
+ * - `full`    — build: runs the `commands.verifyBuild` command
+ * - `dry-run` — authoring dry-run (`#10`): runs BOTH `verifyCheck` and
+ *               `verifyBuild`, one report entry each
  *
  * Commands run as subprocesses in the scaffolded directory. Missing
  * manifest commands for a depth produce an empty, pass report rather than an
- * error. The same primitives back the authoring dry-run (`#10`).
+ * error.
  */
 
 import { execFile } from "node:child_process";
@@ -20,7 +22,7 @@ import type { Manifest } from "./manifest.js";
 
 const execFileAsync = promisify(execFile);
 
-export type VerifyDepth = "skip" | "light" | "full";
+export type VerifyDepth = "skip" | "light" | "full" | "dry-run";
 
 export interface VerifyCheckResult {
   /** The command as a display string (args joined with spaces). */
@@ -77,6 +79,18 @@ export async function verify(
 ): Promise<VerificationReport> {
   if (depth === "skip") {
     return { depth, ok: true, checks: [] };
+  }
+
+  if (depth === "dry-run") {
+    // Authoring dry-run: toolchain check first, then the real build. Run
+    // sequentially so a missing toolchain surfaces before a long build.
+    const commands = [manifest.commands?.verifyCheck, manifest.commands?.verifyBuild]
+      .filter((c): c is string[] => c !== undefined && c.length > 0);
+    const checks: VerifyCheckResult[] = [];
+    for (const command of commands) {
+      checks.push(await runCheck(command, destDir));
+    }
+    return { depth, ok: checks.every((c) => c.ok), checks };
   }
 
   const command = commandFor(manifest, depth);

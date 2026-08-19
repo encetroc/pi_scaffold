@@ -1,20 +1,16 @@
 /**
  * Scafstak — pi extension entry point.
  *
- * Registers the `/scafstak` command. The command drives the interactive happy
- * path (ticket #7): stack → version → questionnaire (defaults pre-filled) →
- * summary confirm → scaffold → first commit → verify → next-steps printout.
- * Deterministic, no LLM in the loop. Non-TUI invocation fails with a clean
- * error instead of hanging.
- *
- * Template-authoring tools (scafstak_list / scafstak_new_template /
- * scafstak_verify_template) land in #10. Args preselect + tab completion
- * ship here (ticket #8).
+ * Registers the `/scafstak` command and the authoring tools (ticket #10:
+ * scafstak_list / scafstak_new_template / scafstak_verify_template). The
+ * command drives the interactive happy path (ticket #7): stack → version →
+ * questionnaire (defaults pre-filled) → summary confirm → scaffold → first
+ * commit → verify → next-steps printout. Deterministic, no LLM in the loop.
+ * Non-TUI invocation fails with a clean error instead of hanging. Args
+ * preselect + tab completion ship here (ticket #8).
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 
 import {
   WizardCancelled,
@@ -24,19 +20,12 @@ import {
   type WizardUi,
 } from "./lib/wizard.js";
 
-/**
- * Locate the `templates/` root shipped with this package. The templates tree
- * lives one directory up from `extensions/` (see package.json `pi.extensions`).
- * `SCAFSTAK_TEMPLATES` overrides it (used by tests and custom installs).
- */
-function templateRoot(thisModuleUrl: string): string {
-  const override = process.env.SCAFSTAK_TEMPLATES;
-  if (override) return override;
-  const moduleDir = fileURLToPath(thisModuleUrl);
-  return dirname(moduleDir) + "/../templates";
-}
+import { templateRoot } from "./lib/root.js";
+import { registerAuthoringTools } from "./tools.js";
 
 export default function scafstak(pi: ExtensionAPI) {
+  registerAuthoringTools(pi);
+
   pi.registerCommand("scafstak", {
     description:
       "Scaffold an AI-ready game project from a manifest-driven template",

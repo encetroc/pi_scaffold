@@ -116,6 +116,53 @@ describe("full (build)", () => {
   });
 });
 
+describe("dry-run (authoring: check + build)", () => {
+  it("passes when both the toolchain check and the build pass", async () => {
+    const dir = await makeTempDir();
+    const report = await verify(
+      manifest({
+        verifyCheck: ["node", "--version"],
+        verifyBuild: ["sh", "-c", "true"],
+      }),
+      dir,
+      "dry-run",
+    );
+
+    expect(report.depth).toBe("dry-run");
+    expect(report.ok).toBe(true);
+    expect(report.checks).toHaveLength(2);
+    expect(report.checks.map((c) => c.command)).toEqual([
+      "node --version",
+      "sh -c true",
+    ]);
+  });
+
+  it("reports both results when the build fails", async () => {
+    const dir = await makeTempDir();
+    const report = await verify(
+      manifest({
+        verifyCheck: ["node", "--version"],
+        verifyBuild: ["sh", "-c", "echo boom; exit 3"],
+      }),
+      dir,
+      "dry-run",
+    );
+
+    expect(report.ok).toBe(false);
+    expect(report.checks).toHaveLength(2);
+    expect(report.checks[0]!.ok).toBe(true);
+    expect(report.checks[1]!.ok).toBe(false);
+    expect(report.checks[1]!.output).toContain("boom");
+  });
+
+  it("reports a pass with no checks when no verify commands are declared", async () => {
+    const dir = await makeTempDir();
+    const report = await verify(manifest({}), dir, "dry-run");
+
+    expect(report).toEqual({ depth: "dry-run", ok: true, checks: [] });
+  });
+});
+
 describe("command execution context", () => {
   it("runs commands with the scaffolded directory as cwd", async () => {
     const dir = await makeTempDir();
