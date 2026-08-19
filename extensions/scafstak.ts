@@ -8,14 +8,21 @@
  * error instead of hanging.
  *
  * Template-authoring tools (scafstak_list / scafstak_new_template /
- * scafstak_verify_template) land in #10, and arg tab completion in #8.
+ * scafstak_verify_template) land in #10. Args preselect + tab completion
+ * ship here (ticket #8).
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { WizardCancelled, nextSteps, runWizard, type WizardUi } from "./lib/wizard.js";
+import {
+  WizardCancelled,
+  completeArgs,
+  nextSteps,
+  runWizard,
+  type WizardUi,
+} from "./lib/wizard.js";
 
 /**
  * Locate the `templates/` root shipped with this package. The templates tree
@@ -33,7 +40,8 @@ export default function scafstak(pi: ExtensionAPI) {
   pi.registerCommand("scafstak", {
     description:
       "Scaffold an AI-ready game project from a manifest-driven template",
-    getArgumentCompletions: () => null, // tab completion lands in #8
+    getArgumentCompletions: (argumentText) =>
+      completeArgs(templateRoot(import.meta.url), argumentText),
     handler: async (args, ctx) => {
       if (ctx.mode !== "tui") {
         ctx.ui.notify(
@@ -51,9 +59,11 @@ export default function scafstak(pi: ExtensionAPI) {
 
       const argv = args.trim().split(/\s+/).filter((s) => s.length > 0);
 
+      const templatesDir = templateRoot(import.meta.url);
+
       try {
         const result = await runWizard(ui, {
-          templatesDir: templateRoot(import.meta.url),
+          templatesDir,
           cwd: ctx.cwd,
           args: argv,
         });
