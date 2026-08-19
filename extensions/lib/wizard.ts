@@ -39,6 +39,13 @@ export interface WizardUi {
 
   /** Yes/No confirm; `false` when the user declines or cancels. */
   confirm(title: string, body: string): Promise<boolean>;
+
+  /**
+   * Run blocking work (git, build, verify) behind an activity indicator so
+   * the user can tell a long phase is running vs finished. Must await
+   * `task` and return its value.
+   */
+  runInProgress<T>(label: string, task: () => Promise<T>): Promise<T>;
 }
 
 export class WizardCancelled extends Error {
@@ -314,8 +321,14 @@ export async function runWizard(
   }
 
   const vars = resolveVariables(manifest, resolved);
-  const scaffolded = await scaffold(manifest, templateDir, vars, destDir);
-  await initAndCommit(destDir);
+  const scaffolded = await ui.runInProgress(
+    "Scaffolding project files…",
+    async () => {
+      const s = await scaffold(manifest, templateDir, vars, destDir);
+      await initAndCommit(destDir);
+      return s;
+    },
+  );
 
   // Ticket #9: remote question after the first commit. "None" is the
   // default — a cancel/decline amounts to no remote.
@@ -333,7 +346,9 @@ export async function runWizard(
     if (trimmed.length === 0) {
       throw new WizardCancelled("empty remote URL");
     }
-    await addAndPush(destDir, trimmed);
+    await ui.runInProgress("Pushing to remote…", () =>
+      addAndPush(destDir, trimmed),
+    );
     remote = { choice: "url", url: trimmed };
   } else if (remoteChoice === "Create a GitHub repo via gh and push") {
     const repoName = kebabCase(
@@ -343,7 +358,9 @@ export async function runWizard(
       (await ui.select("GitHub repo visibility:", ["Private", "Public"])) ??
       "Private";
     const visibility = visibilityChoice === "Public" ? "public" : "private";
-    await createGitHubRepo(destDir, repoName, visibility);
+    await ui.runInProgress("Creating GitHub repo and pushing…", () =>
+      createGitHubRepo(destDir, repoName, visibility),
+    );
     remote = { choice: "gh", repoName, visibility };
   }
 
@@ -355,7 +372,11 @@ export async function runWizard(
   let depth: VerifyDepth = "light";
   if (choice === "Full (build)") depth = "full";
   else if (choice === "skip") depth = "skip";
-  const verification = await verify(manifest, destDir, depth);
+  const runLabel =
+    depth === "skip" ? "Verifying (none to run)…" : `Verifying (${depth})…`;
+  const verification = await ui.runInProgress(runLabel, () =>
+    verify(manifest, destDir, depth),
+  );
 
   return {
     manifest,
