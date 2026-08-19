@@ -48,7 +48,10 @@ export default function scafstak(pi: ExtensionAPI) {
         confirm: (title, body) => ctx.ui.confirm(title, body),
       };
 
-      const argv = args.trim().split(/\s+/).filter((s) => s.length > 0);
+      const argv = args
+        .trim()
+        .split(/\s+/)
+        .filter((s) => s.length > 0);
 
       const templatesDir = templateRoot(import.meta.url);
 
@@ -92,11 +95,17 @@ export default function scafstak(pi: ExtensionAPI) {
         }
 
         ctx.ui.notify(nextSteps(result), "info");
-        ctx.ui.notify(`Initial commit created in ${result.destDir}: scaffold: initial project`, "info");
+        ctx.ui.notify(
+          `Initial commit created in ${result.destDir}: scaffold: initial project`,
+          "info",
+        );
         if (result.remote.choice === "url") {
           ctx.ui.notify(`Pushed to remote: ${result.remote.url}`, "info");
         } else if (result.remote.choice === "gh") {
-          ctx.ui.notify(`Created and pushed GitHub repo: ${result.remote.repoName}`, "info");
+          ctx.ui.notify(
+            `Created and pushed GitHub repo: ${result.remote.repoName}`,
+            "info",
+          );
         }
         ctx.ui.notify(verifyLine, report.ok ? "info" : "warning");
       } catch (err) {

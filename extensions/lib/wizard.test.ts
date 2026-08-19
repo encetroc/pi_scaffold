@@ -1,5 +1,12 @@
 import { execFile } from "node:child_process";
-import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  readFile,
+  readdir,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
@@ -64,8 +71,16 @@ async function writeTemplate(
       frameworkVersion: version,
       language: "rs",
       questions: [
-        { id: "window_title", label: "Window title", default: "{{project_name}}" },
-        { id: "crate_name", label: "Crate name", default: "{{project_name_snake}}" },
+        {
+          id: "window_title",
+          label: "Window title",
+          default: "{{project_name}}",
+        },
+        {
+          id: "crate_name",
+          label: "Crate name",
+          default: "{{project_name_snake}}",
+        },
       ],
       variables: { project_name_snake: "{{project_name}} -> snake_case" },
       commands: { run: "./scripts/run.sh" },

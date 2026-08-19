@@ -24,10 +24,7 @@ import {
   type VerifyDepth,
 } from "../../src/engine/index.js";
 
-import {
-  addAndPush,
-  createGitHubRepo,
-} from "./remote.js";
+import { addAndPush, createGitHubRepo } from "./remote.js";
 
 /** UI seam. Matches the subset of `ctx.ui` the wizard needs. */
 export interface WizardUi {
@@ -149,7 +146,10 @@ export async function completeArgs(
     return null;
   }
 
-  const tokens = argumentText.trimEnd().split(/\s+/).filter((t) => t.length > 0);
+  const tokens = argumentText
+    .trimEnd()
+    .split(/\s+/)
+    .filter((t) => t.length > 0);
   const trailingSpace = /\s$/.test(argumentText);
 
   // First argument — the stack name (possibly mid-word, or just a space).
@@ -191,14 +191,19 @@ async function pickTemplate(
 
   const requested = config.args[0];
   let stack =
-    requested === undefined ? undefined : stacks.find((s) => s.stack === requested);
+    requested === undefined
+      ? undefined
+      : stacks.find((s) => s.stack === requested);
   if (!stack) {
     if (requested !== undefined) {
       throw new Error(
         `unknown stack "${requested}" (known: ${stacks.map((s) => s.stack).join(", ")})`,
       );
     }
-    const chosen = await ui.select("Choose a stack:", stacks.map((s) => s.stack));
+    const chosen = await ui.select(
+      "Choose a stack:",
+      stacks.map((s) => s.stack),
+    );
     if (chosen === undefined) throw new WizardCancelled("no stack picked");
     const found = stacks.find((s) => s.stack === chosen);
     if (!found) throw new WizardCancelled("no stack picked");
@@ -208,7 +213,10 @@ async function pickTemplate(
   let version: string;
   if (stack.versions.length > 1) {
     const requestedVersion = config.args[1];
-    if (requestedVersion !== undefined && stack.versions.includes(requestedVersion)) {
+    if (
+      requestedVersion !== undefined &&
+      stack.versions.includes(requestedVersion)
+    ) {
       version = requestedVersion;
     } else {
       const picked = await ui.select(
@@ -220,26 +228,37 @@ async function pickTemplate(
     }
   } else {
     const only = stack.versions[0];
-    if (only === undefined) throw new WizardCancelled(`stack "${stack.stack}" has no versions`);
+    if (only === undefined)
+      throw new WizardCancelled(`stack "${stack.stack}" has no versions`);
     version = only;
   }
 
-  return { version, templateDir: join(config.templatesDir, stack.stack, version) };
+  return {
+    version,
+    templateDir: join(config.templatesDir, stack.stack, version),
+  };
 }
 
 /** Walk the generic + template questionnaire, honoring pre-filled defaults. */
 async function collectAnswers(
   ui: WizardUi,
   manifest: Manifest,
-): Promise<{ resolved: Record<string, string>; asked: Array<{ id: string; label: string }> }> {
+): Promise<{
+  resolved: Record<string, string>;
+  asked: Array<{ id: string; label: string }>;
+}> {
   const projectName = await ui.input("Project name");
   if (projectName === undefined) throw new WizardCancelled("no project name");
   const name = projectName.trim();
 
   const targetDefault = name.length > 0 ? `.${sep}${name}` : ".";
-  const targetDir = (await ui.input("Target directory", targetDefault)) ?? targetDefault;
+  const targetDir =
+    (await ui.input("Target directory", targetDefault)) ?? targetDefault;
 
-  const resolved: Record<string, string> = { project_name: name, target_dir: targetDir };
+  const resolved: Record<string, string> = {
+    project_name: name,
+    target_dir: targetDir,
+  };
   const asked: Array<{ id: string; label: string }> = [];
 
   for (const q of manifest.questions ?? []) {
@@ -247,7 +266,11 @@ async function collectAnswers(
     if (q.default !== undefined) {
       try {
         const vars = resolveVariables(manifest, resolved);
-        initial = substituteTemplate(q.default, vars, `default for question "${q.id}"`);
+        initial = substituteTemplate(
+          q.default,
+          vars,
+          `default for question "${q.id}"`,
+        );
       } catch {
         initial = q.default;
       }
@@ -261,7 +284,11 @@ async function collectAnswers(
 }
 
 /** Human-readable manifest summary for the confirm dialog. */
-function summarize(manifest: Manifest, resolved: Record<string, string>, destDir: string): string {
+function summarize(
+  manifest: Manifest,
+  resolved: Record<string, string>,
+  destDir: string,
+): string {
   const lines = [
     `Stack: ${manifest.stack} ${manifest.frameworkVersion} (${manifest.language})`,
     `Name: ${resolved.project_name}`,
@@ -287,7 +314,12 @@ export async function runWizard(
   const { resolved } = await collectAnswers(ui, manifest);
   const destDir = resolve(config.cwd, resolved.target_dir ?? ".");
 
-  if (!(await ui.confirm("Scaffold project?", summarize(manifest, resolved, destDir)))) {
+  if (
+    !(await ui.confirm(
+      "Scaffold project?",
+      summarize(manifest, resolved, destDir),
+    ))
+  ) {
     throw new WizardCancelled("summary declined");
   }
 
@@ -315,7 +347,8 @@ export async function runWizard(
     remote = { choice: "url", url: trimmed };
   } else if (remoteChoice === "Create a GitHub repo via gh and push") {
     const defaultName = basename(resolve(destDir));
-    const repoName = (await ui.input("GitHub repo name", defaultName)) ?? defaultName;
+    const repoName =
+      (await ui.input("GitHub repo name", defaultName)) ?? defaultName;
     const visibilityChoice =
       (await ui.select("GitHub repo visibility:", ["Private", "Public"])) ??
       "Private";

@@ -12,15 +12,9 @@
  * path so the flow stays testable with a scripted fake.
  */
 
-import {
-  newTemplate,
-  type Manifest,
-} from "../../src/engine/index.js";
+import { newTemplate, type Manifest } from "../../src/engine/index.js";
 
-import {
-  WizardCancelled,
-  type WizardUi,
-} from "./wizard.js";
+import { WizardCancelled, type WizardUi } from "./wizard.js";
 
 export interface NewStackConfig {
   /** Root directory containing `<stack>/<version>/manifest.json` trees. */
@@ -60,7 +54,8 @@ async function askFor(
   const value = await ui.input(prompt);
   if (value === undefined) throw new WizardCancelled("new-stack cancelled");
   const trimmed = value.trim();
-  if (trimmed.length === 0) throw new WizardCancelled(`no ${prompt.toLowerCase()} given`);
+  if (trimmed.length === 0)
+    throw new WizardCancelled(`no ${prompt.toLowerCase()} given`);
   return trimmed;
 }
 
@@ -68,7 +63,9 @@ async function askFor(
  * Build the agent handoff message for a fresh template skeleton. Written
  * for the same agent session to continue: research → fill → cite → verify.
  */
-export function buildKickoff(result: Pick<NewStackResult, "templateDir" | "manifest">): string {
+export function buildKickoff(
+  result: Pick<NewStackResult, "templateDir" | "manifest">,
+): string {
   const m = result.manifest;
   const declaredRefs = m.references ?? [];
   const references =
@@ -101,7 +98,7 @@ export function buildKickoff(result: Pick<NewStackResult, "templateDir" | "manif
       `and commits the result.`,
     ``,
     `Repo conventions: read \`CONTEXT.md\` and \`docs/agents/domain.md\`; follow the engineering ` +
-    `skills in \`.agents/skills/\` (writing-for-agents for the getting-started, tdd where it applies).`,
+      `skills in \`.agents/skills/\` (writing-for-agents for the getting-started, tdd where it applies).`,
   ].join("\n");
 }
 
@@ -116,14 +113,23 @@ export async function runNewStack(
   config: NewStackConfig,
 ): Promise<NewStackResult> {
   const stack = await askFor(ui, "Stack name (e.g. bevy)", arg(config.args[0]));
-  const version = await askFor(ui, "Version directory (e.g. 0.20)", arg(config.args[1]));
-  const language = await askFor(ui, "Language (e.g. rust, javascript)", arg(config.args[2]));
+  const version = await askFor(
+    ui,
+    "Version directory (e.g. 0.20)",
+    arg(config.args[1]),
+  );
+  const language = await askFor(
+    ui,
+    "Language (e.g. rust, javascript)",
+    arg(config.args[2]),
+  );
 
   const referencesInput = await ui.input(
     "Authoring references (comma-separated doc URLs or md paths — optional)",
     "",
   );
-  if (referencesInput === undefined) throw new WizardCancelled("new-stack cancelled");
+  if (referencesInput === undefined)
+    throw new WizardCancelled("new-stack cancelled");
   const references = referencesInput
     .split(",")
     .map((r) => r.trim())
