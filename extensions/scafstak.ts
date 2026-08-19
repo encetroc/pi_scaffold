@@ -1,53 +1,83 @@
 /**
  * Scafstak — pi extension entry point.
  *
- * Registers the `/scafstak` command surface. The full interactive wizard is
- * #7; this entry proves the package loads and the command registers, and
- * wires the pure scaffold engine (src/engine) into the extension.
+ * Registers the `/scafstak` command. The command drives the interactive happy
+ * path (ticket #7): stack → version → questionnaire (defaults pre-filled) →
+ * summary confirm → scaffold → first commit → verify → next-steps printout.
+ * Deterministic, no LLM in the loop. Non-TUI invocation fails with a clean
+ * error instead of hanging.
  *
  * Template-authoring tools (scafstak_list / scafstak_new_template /
- * scafstak_verify_template) land in #10.
+ * scafstak_verify_template) land in #10, and arg tab completion in #8.
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
-import {
-  addRemote,
-  commitInitial,
-  gitInit,
-  initAndCommit,
-  loadManifest,
-  resolveVariables,
-  scaffold,
-  verify,
-} from "../src/engine/index.js";
+import { WizardCancelled, nextSteps, runWizard, type WizardUi } from "./lib/wizard.js";
+
+/**
+ * Locate the `templates/` root shipped with this package. The templates tree
+ * lives one directory up from `extensions/` (see package.json `pi.extensions`).
+ * `SCAFSTAK_TEMPLATES` overrides it (used by tests and custom installs).
+ */
+function templateRoot(thisModuleUrl: string): string {
+  const override = process.env.SCAFSTAK_TEMPLATES;
+  if (override) return override;
+  const moduleDir = fileURLToPath(thisModuleUrl);
+  return dirname(moduleDir) + "/../templates";
+}
 
 export default function scafstak(pi: ExtensionAPI) {
   pi.registerCommand("scafstak", {
     description:
       "Scaffold an AI-ready game project from a manifest-driven template",
-    getArgumentCompletions: (prefix) => {
-      // Stack/version completion arrives in #8. Keep the surface silent for now.
-      void prefix;
-      return null;
-    },
+    getArgumentCompletions: () => null, // tab completion lands in #8
     handler: async (args, ctx) => {
-      void args;
-      ctx.ui.notify(
-        "scafstak: engine loaded — interactive wizard lands in #7",
-        "info",
-      );
+      if (ctx.mode !== "tui") {
+        ctx.ui.notify(
+          "scafstak needs an interactive (TUI) session — non-interactive modes are not supported (#7).",
+          "error",
+        );
+        return;
+      }
+
+      const ui: WizardUi = {
+        select: (prompt, options) => ctx.ui.select(prompt, options),
+        input: (prompt, initial) => ctx.ui.input(prompt, initial),
+        confirm: (title, body) => ctx.ui.confirm(title, body),
+      };
+
+      const argv = args.trim().split(/\s+/).filter((s) => s.length > 0);
+
+      try {
+        const result = await runWizard(ui, {
+          templatesDir: templateRoot(import.meta.url),
+          cwd: ctx.cwd,
+          args: argv,
+        });
+
+        const report = result.verification;
+        let verifyLine: string;
+        if (!report.ok) {
+          verifyLine = `Verify (${report.depth}): FAILED — see output above for details`;
+        } else if (report.checks.length === 0) {
+          verifyLine = `Verify (${report.depth}): nothing to run (skipped or no command defined)`;
+        } else {
+          verifyLine = `Verify (${report.depth}): passed ✔`;
+        }
+
+        ctx.ui.notify(nextSteps(result), "info");
+        ctx.ui.notify(`Initial commit created in ${result.destDir}: scaffold: initial project`, "info");
+        ctx.ui.notify(verifyLine, report.ok ? "info" : "warning");
+      } catch (err) {
+        if (err instanceof WizardCancelled) {
+          ctx.ui.notify("scafstak cancelled — nothing was written.", "info");
+          return;
+        }
+        ctx.ui.notify(`scafstak failed: ${(err as Error).message}`, "error");
+      }
     },
   });
-
-  // Reference the engine so the entry point is verifiably wired even before
-  // the wizard exists. This keeps the import tree exercised by /reload.
-  void loadManifest;
-  void resolveVariables;
-  void scaffold;
-  void gitInit;
-  void commitInitial;
-  void initAndCommit;
-  void addRemote;
-  void verify;
-}
+} // end of scafstak factory
