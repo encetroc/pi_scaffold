@@ -108,6 +108,9 @@ class ScriptedUi implements WizardUi {
   async confirm(): Promise<boolean> {
     return (this.script[this.index++] ?? "0") === "yes";
   }
+  async runInProgress<T>(_label: string, task: () => Promise<T>): Promise<T> {
+    return task();
+  }
 }
 
 describe("listStacks", () => {

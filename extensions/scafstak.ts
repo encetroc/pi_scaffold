@@ -11,6 +11,7 @@
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { BorderedLoader } from "@earendil-works/pi-coding-agent";
 
 import {
   WizardCancelled,
@@ -46,6 +47,36 @@ export default function scafstak(pi: ExtensionAPI) {
         select: (prompt, options) => ctx.ui.select(prompt, options),
         input: (prompt, initial) => ctx.ui.input(prompt, initial),
         confirm: (title, body) => ctx.ui.confirm(title, body),
+        // Spinner for the long blocking phases (scaffold, commit, remote,
+        // verify) so the user can tell running vs finished. Non-cancellable
+        // keeps the flow deterministic — phases finish or fail loudly.
+        runInProgress: <T>(
+          label: string,
+          task: () => Promise<T>,
+        ): Promise<T> => {
+          let failure: unknown;
+          let value: T | undefined;
+          return ctx.ui
+            .custom<void>((tui, theme, _kb, done) => {
+              const loader = new BorderedLoader(tui, theme, label, {
+                cancellable: false,
+              });
+              task()
+                .then((v) => {
+                  value = v;
+                  done();
+                })
+                .catch((error: unknown) => {
+                  failure = error;
+                  done();
+                });
+              return loader;
+            })
+            .then(() => {
+              if (failure !== undefined) throw failure;
+              return value as T;
+            });
+        },
       };
 
       const argv = args
