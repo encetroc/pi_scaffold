@@ -21,9 +21,9 @@ import {
   type TemplateEntry,
   type TemplateProblem,
   type VerifyCheckResult,
-} from "../src/engine/index.js";
+} from "../../src/engine/index.js";
 
-import { templateRoot } from "./lib/root.js";
+import { templateRoot } from "./root.js";
 
 /** Uniform `details` shapes so every branch of each tool stays consistent. */
 interface ListToolDetails {
@@ -68,7 +68,8 @@ function registerListTool(pi: ExtensionAPI): void {
     label: "Scafstak: list templates",
     description:
       "List every registered scafstak template: stack, framework version, language, and build targets. Broken manifests are reported as errors, never hidden.",
-    promptSnippet: "List scafstak stacks, versions, languages, and build targets",
+    promptSnippet:
+      "List scafstak stacks, versions, languages, and build targets",
     promptGuidelines: [
       "Use scafstak_list before scafstak_new_template to check whether a stack/version already exists.",
     ],
@@ -119,20 +120,23 @@ function registerNewTemplateTool(pi: ExtensionAPI): void {
     label: "Scafstak: new template",
     description:
       "Create a new template skeleton at templates/<stack>/<version>/: a validated manifest.json, a getting-started.md placeholder, and a files/ tree. Optionally harvest an existing project into files/ (--source) and seed manifest references from docs (--docs). The agent then fills files/ and the getting-started guide from research.",
-    promptSnippet: "Create a new scafstak template skeleton (optionally harvesting an existing project)",
+    promptSnippet:
+      "Create a new scafstak template skeleton (optionally harvesting an existing project)",
     promptGuidelines: [
       "Use scafstak_new_template to start authoring a new stack or framework version; then fill files/ and getting-started.md from official docs and dry-run with scafstak_verify_template.",
       "When scafstak_new_template harvests with source, templatize the copied files (answers, {{var}} placeholders) before verifying.",
     ],
     parameters: Type.Object({
       stack: Type.String({
-        description: "Tech stack name, e.g. \"bevy\" (also the templates/ subdirectory).",
+        description:
+          'Tech stack name, e.g. "bevy" (also the templates/ subdirectory).',
       }),
       version: Type.String({
-        description: "Template version directory, e.g. \"0.19\" (templates/<stack>/<version>/).",
+        description:
+          'Template version directory, e.g. "0.19" (templates/<stack>/<version>/).',
       }),
       language: Type.String({
-        description: "Implementation language, e.g. \"rust\" or \"javascript\".",
+        description: 'Implementation language, e.g. "rust" or "javascript".',
       }),
       frameworkVersion: Type.Optional(
         Type.String({
@@ -209,19 +213,24 @@ function registerVerifyTemplateTool(pi: ExtensionAPI): void {
     label: "Scafstak: verify template",
     description:
       "Dry-run a template: scaffold it with default answers into a temp dir, run the manifest's verifyCheck and verifyBuild commands, and report pass/fail per command. Fails loudly on a broken manifest, a missing files/ tree, or an unanswered question.",
-    promptSnippet: "Dry-run verify a scafstak template (scaffold + verify commands in a temp dir)",
+    promptSnippet:
+      "Dry-run verify a scafstak template (scaffold + verify commands in a temp dir)",
     promptGuidelines: [
       "Use scafstak_verify_template after authoring or editing a template, before it ships — a template must dry-run PASS to be accepted.",
     ],
     parameters: Type.Object({
       template: Type.String({
-        description: 'Template to verify as "<stack>/<version>", e.g. "bevy/0.19".',
+        description:
+          'Template to verify as "<stack>/<version>", e.g. "bevy/0.19".',
       }),
     }),
     async execute(_toolCallId, params) {
       const root = templateRoot(import.meta.url);
 
-      const segments = params.template.trim().split("/").filter((s) => s.length > 0);
+      const segments = params.template
+        .trim()
+        .split("/")
+        .filter((s) => s.length > 0);
       const [stack, version] = segments;
       const isSafe =
         segments.length === 2 &&
@@ -257,7 +266,9 @@ function registerVerifyTemplateTool(pi: ExtensionAPI): void {
           `scafstak_verify_template ${status} for ${segments.join("/")} (dry-run)`,
           `- scaffolded ${result.files.length} file(s) into ${result.tempDir}`,
           ...(checks.length === 0
-            ? ["- no verify commands declared (verifyCheck / verifyBuild) — nothing ran"]
+            ? [
+                "- no verify commands declared (verifyCheck / verifyBuild) — nothing ran",
+              ]
             : checks.map((c) => checkLine(c.command, c.ok, c.output))),
         ];
         return { content: [{ type: "text", text: lines.join("\n") }], details };

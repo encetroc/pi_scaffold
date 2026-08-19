@@ -23,7 +23,7 @@ import {
 import { runNewStack } from "./lib/newstack.js";
 
 import { templateRoot } from "./lib/root.js";
-import { registerAuthoringTools } from "./tools.js";
+import { registerAuthoringTools } from "./lib/tools.js";
 
 export default function scafstak(pi: ExtensionAPI) {
   registerAuthoringTools(pi);
