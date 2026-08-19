@@ -188,10 +188,7 @@ describe("runWizard", () => {
 
     const ui = new ScriptedUi([
       "demo", // stack
-      "My Demo", // project name
-      undefined, // target dir -> default
-      undefined, // window_title -> default "My Demo"
-      undefined, // crate_name -> default "my_demo"
+      "My Demo", // project name (only text prompt)
       "yes", // summary confirm
       "None (no remote)", // remote after first commit
       "skip", // verify -> skip
@@ -233,11 +230,8 @@ describe("runWizard", () => {
     await writeTemplate(templatesDir, "phaser", "4");
 
     const ui = new ScriptedUi([
-      "My Demo", // project name
-      undefined, // target dir
-      undefined, // window title default
-      undefined, // crate name default
-      "yes",
+      "My Demo", // project name (only text input)
+      "yes", // summary confirm
       "None (no remote)",
       "skip",
     ]);
@@ -260,9 +254,6 @@ describe("runWizard", () => {
     const ui = new ScriptedUi([
       "demo",
       "My Demo",
-      undefined,
-      undefined,
-      undefined,
       undefined, // confirm -> undefined = false
     ]);
 
@@ -291,6 +282,55 @@ describe("runWizard", () => {
       runWizard(ui, { templatesDir, cwd: tempRoot, args: [] }),
     ).rejects.toThrow(/no templates/);
   });
+
+  it("fails loudly when a template question has no default (#23)", async () => {
+    const templatesDir = join(tempRoot, "templates");
+    const cwd = join(tempRoot, "out");
+    await mkdir(cwd, { recursive: true });
+    // A question with no default must fail rather than prompt.
+    const root = join(templatesDir, "demo", "1");
+    await mkdir(join(root, "files"), { recursive: true });
+    await writeFile(
+      join(root, "manifest.json"),
+      JSON.stringify({
+        name: "demo-1",
+        stack: "demo",
+        frameworkVersion: "1",
+        language: "rs",
+        questions: [{ id: "asset_pack", label: "Asset pack" }],
+        commands: { run: "./scripts/run.sh" },
+      }),
+    );
+    await writeFile(join(root, "files", "a.txt"), "{{project_name}}\n");
+
+    const ui = new ScriptedUi(["demo", "My Demo"]);
+    await expect(
+      runWizard(ui, { templatesDir, cwd, args: [] }),
+    ).rejects.toThrow(/asset_pack.*no answer and no default/);
+
+    // Nothing written — the wizard failed before confirming.
+    expect(await readdir(cwd)).toEqual([]);
+  });
+
+  it("asks only one text question (Project name) during the questionnaire (#23)", async () => {
+    const templatesDir = join(tempRoot, "templates");
+    const cwd = join(tempRoot, "out");
+    await mkdir(cwd, { recursive: true });
+    await writeTemplate(templatesDir);
+
+    // Only two values needed after the stack select: the project name text
+    // input and the summary confirm. Any leftover prompt would consume the
+    // "yes" as a question answer and break the scripted flow.
+    const ui = new ScriptedUi([
+      "demo", // stack select
+      "My Demo", // project name (the one text question)
+      "yes", // summary confirm
+    ]);
+
+    const result = await runWizard(ui, { templatesDir, cwd, args: [] });
+    const dest = resolve(cwd, "My Demo");
+    expect(result.destDir).toBe(dest);
+  });
 });
 
 describe("runWizard remote (#9)", () => {
@@ -305,9 +345,6 @@ describe("runWizard remote (#9)", () => {
     const ui = new ScriptedUi([
       "demo",
       "My Demo",
-      undefined,
-      undefined,
-      undefined,
       "yes",
       ...script,
       "skip",

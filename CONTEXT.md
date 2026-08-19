@@ -17,7 +17,9 @@ _Avoid_: init, generate, create
 
 **Wizard**:
 The interactive question-and-answer flow inside pi that collects the user's
-choices before scaffolding runs.
+choices before scaffolding runs. Asks one text question (project name); template
+questions with a default are answered silently, and one with no default fails
+loudly.
 _Avoid_: questionnaire, form
 
 **Tech stack**:
@@ -54,8 +56,9 @@ present, harness runs) before a new template is accepted into the registry.
 
 **Build target**:
 For stack templates that support it, the runtime the scaffolded project targets
-(e.g. Bevy: native via WSLg, or web via trunk). A wizard question; commands in
-`manifest.json` differ per target.
+(e.g. Bevy: native via WSLg, or web via trunk). A silent template question
+(defaulted from the manifest, not prompted); commands in `manifest.json` differ
+per target.
 
 **First commit**:
 Scaffolding ends with `git init`, a commit of the scaffolded tree, and a wizard
@@ -68,4 +71,6 @@ official doc links, local md files, or both. The agent consults them when
 writing template content.
 
 **Project**:
-The scaffolded output on disk. Named by the user; created at a chosen path.
+The scaffolded output on disk. Named by the user; the directory
+(`./<project-name>`) and the GitHub repo name (kebab-case) derive from that
+single name.

@@ -15,9 +15,9 @@ import { basename, join, resolve, sep } from "node:path";
 import {
   initAndCommit,
   loadManifest,
+  resolvedAnswers,
   resolveVariables,
   scaffold,
-  substituteTemplate,
   verify,
   type Manifest,
   type VerificationReport,
@@ -97,6 +97,16 @@ export function nextSteps(result: WizardResult): string {
     `AGENTS.md drives the next agent session: workflow + docs map + stack commands.`,
   ];
   return lines.join("\n");
+}
+
+/** Kebab-case a name (`My Demo` → `my-demo`), for derived repo names. */
+function kebabCase(value: string): string {
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+    .replace(/[\s_]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase();
 }
 
 /**
@@ -239,48 +249,28 @@ async function pickTemplate(
   };
 }
 
-/** Walk the generic + template questionnaire, honoring pre-filled defaults. */
+/**
+ * Ask the single text question (Project name), derive the target dir, and
+ * resolve the template questionnaire silently from defaults (#23).
+ *
+ * Every template question with a `default` is answered from that default;
+ * one with no default fails loudly via `resolvedAnswers` rather than
+ * prompting — the wizard stays one-question for well-formed templates.
+ */
 async function collectAnswers(
   ui: WizardUi,
   manifest: Manifest,
-): Promise<{
-  resolved: Record<string, string>;
-  asked: Array<{ id: string; label: string }>;
-}> {
+): Promise<{ resolved: Record<string, string> }> {
   const projectName = await ui.input("Project name");
   if (projectName === undefined) throw new WizardCancelled("no project name");
   const name = projectName.trim();
+  if (name.length === 0) throw new WizardCancelled("no project name");
 
-  const targetDefault = name.length > 0 ? `.${sep}${name}` : ".";
-  const targetDir =
-    (await ui.input("Target directory", targetDefault)) ?? targetDefault;
-
-  const resolved: Record<string, string> = {
+  const resolved = resolvedAnswers(manifest, {
     project_name: name,
-    target_dir: targetDir,
-  };
-  const asked: Array<{ id: string; label: string }> = [];
-
-  for (const q of manifest.questions ?? []) {
-    let initial = "";
-    if (q.default !== undefined) {
-      try {
-        const vars = resolveVariables(manifest, resolved);
-        initial = substituteTemplate(
-          q.default,
-          vars,
-          `default for question "${q.id}"`,
-        );
-      } catch {
-        initial = q.default;
-      }
-    }
-    const value = (await ui.input(`${q.label}:`, initial)) ?? initial;
-    resolved[q.id] = value;
-    asked.push({ id: q.id, label: q.label });
-  }
-
-  return { resolved, asked };
+    target_dir: `.${sep}${name}`,
+  });
+  return { resolved };
 }
 
 /** Human-readable manifest summary for the confirm dialog. */
@@ -346,9 +336,9 @@ export async function runWizard(
     await addAndPush(destDir, trimmed);
     remote = { choice: "url", url: trimmed };
   } else if (remoteChoice === "Create a GitHub repo via gh and push") {
-    const defaultName = basename(resolve(destDir));
-    const repoName =
-      (await ui.input("GitHub repo name", defaultName)) ?? defaultName;
+    const repoName = kebabCase(
+      resolved.project_name ?? basename(resolve(destDir)),
+    );
     const visibilityChoice =
       (await ui.select("GitHub repo visibility:", ["Private", "Public"])) ??
       "Private";
