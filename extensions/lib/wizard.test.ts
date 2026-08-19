@@ -3,7 +3,14 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { listStacks, nextSteps, runWizard, WizardCancelled, type WizardUi } from "./wizard.js";
+import {
+  completeArgs,
+  listStacks,
+  nextSteps,
+  runWizard,
+  WizardCancelled,
+  type WizardUi,
+} from "./wizard.js";
 
 let tempRoot: string;
 const tempDirs: string[] = [];
@@ -98,6 +105,49 @@ describe("listStacks", () => {
     const dir = join(tempRoot, "empty");
     await mkdir(dir, { recursive: true });
     expect(await listStacks(dir)).toEqual([]);
+  });
+});
+
+describe("completeArgs", () => {
+  let dir: string;
+  beforeEach(async () => {
+    dir = join(tempRoot, "templates");
+    await writeTemplate(dir, "bevy", "0.19");
+    await writeTemplate(dir, "bevy", "0.18");
+    await writeTemplate(dir, "phaser", "4");
+  });
+
+  it("offers stacks for the first argument", async () => {
+    const items = await completeArgs(dir, "");
+    expect(items?.map((i) => i.value)).toEqual(["bevy", "phaser"]);
+  });
+
+  it("filters stacks mid-word", async () => {
+    const items = await completeArgs(dir, "be");
+    expect(items?.map((i) => i.value)).toEqual(["bevy"]);
+  });
+
+  it("offers versions of the chosen stack after a space", async () => {
+    const items = await completeArgs(dir, "bevy ");
+    expect(items?.map((i) => ({ value: i.value, label: i.label }))).toEqual([
+      { value: "bevy 0.18", label: "0.18" },
+      { value: "bevy 0.19", label: "0.19" },
+    ]);
+  });
+
+  it("filters versions mid-word with the stack prefix kept", async () => {
+    const items = await completeArgs(dir, "bevy 0.19");
+    expect(items?.map((i) => i.value)).toEqual(["bevy 0.19"]);
+  });
+
+  it("returns null for an unknown stack", async () => {
+    expect(await completeArgs(dir, "nope ")).toBeNull();
+  });
+
+  it("returns null when no templates are installed", async () => {
+    const empty = join(tempRoot, "empty");
+    await mkdir(empty, { recursive: true });
+    expect(await completeArgs(empty, "")).toBeNull();
   });
 });
 

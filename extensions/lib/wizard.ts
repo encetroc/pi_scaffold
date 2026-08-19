@@ -113,6 +113,55 @@ export async function listStacks(templatesDir: string): Promise<StackInfo[]> {
   return stacks;
 }
 
+export interface CompletionItem {
+  value: string;
+  label: string;
+  description?: string;
+}
+
+/**
+ * Tab-completion for `/scafstak` args.
+ *
+ * `argumentText` is everything after the command name, as pi passes it. The
+ * returned items replace the entire argument text, so version suggestions must
+ * carry the stack prefix. Returns `null` when nothing sensible can complete.
+ */
+export async function completeArgs(
+  templatesDir: string,
+  argumentText: string,
+): Promise<CompletionItem[] | null> {
+  let stacks: StackInfo[];
+  try {
+    stacks = await listStacks(templatesDir);
+  } catch {
+    return null;
+  }
+  if (stacks.length === 0) return null;
+
+  const tokens = argumentText.trimEnd().split(/\s+/).filter((t) => t.length > 0);
+  const trailingSpace = /\s$/.test(argumentText);
+
+  // First argument — the stack name (possibly mid-word, or just a space).
+  if (tokens.length === 0 || (tokens.length === 1 && !trailingSpace)) {
+    const prefix = tokens[0] ?? "";
+    const matches = stacks.filter((s) => s.stack.startsWith(prefix));
+    if (matches.length === 0) return null;
+    return matches.map((s) => ({ value: s.stack, label: s.stack }));
+  }
+
+  // Second argument — a version of the stack named by the first token.
+  if (tokens.length === 1 || (tokens.length === 2 && !trailingSpace)) {
+    const stack = stacks.find((s) => s.stack === tokens[0]);
+    if (!stack) return null;
+    const prefix = tokens[1] ?? "";
+    const matches = stack.versions.filter((v) => v.startsWith(prefix));
+    if (matches.length === 0) return null;
+    return matches.map((v) => ({ value: `${stack.stack} ${v}`, label: v }));
+  }
+
+  return null;
+}
+
 /** Resolve the target template from args or prompts. */
 async function pickTemplate(
   ui: WizardUi,
