@@ -75,7 +75,7 @@ function registerListTool(pi: ExtensionAPI): void {
     ],
     parameters: Type.Object({}),
     async execute() {
-      const root = templateRoot(import.meta.url);
+      const root = templateRoot();
       try {
         const { templates, errors } = await listTemplates(root);
         const details: ListToolDetails = { ok: true, templates, errors };
@@ -158,7 +158,7 @@ function registerNewTemplateTool(pi: ExtensionAPI): void {
       ),
     }),
     async execute(_toolCallId, params) {
-      const root = templateRoot(import.meta.url);
+      const root = templateRoot();
       try {
         const result = await newTemplate({
           templatesDir: root,
@@ -225,7 +225,7 @@ function registerVerifyTemplateTool(pi: ExtensionAPI): void {
       }),
     }),
     async execute(_toolCallId, params) {
-      const root = templateRoot(import.meta.url);
+      const root = templateRoot();
 
       const segments = params.template
         .trim()

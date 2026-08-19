@@ -32,7 +32,7 @@ export default function scafstak(pi: ExtensionAPI) {
     description:
       "Scaffold an AI-ready game project from a manifest-driven template",
     getArgumentCompletions: (argumentText) =>
-      completeArgs(templateRoot(import.meta.url), argumentText),
+      completeArgs(templateRoot(), argumentText),
     handler: async (args, ctx) => {
       if (ctx.mode !== "tui") {
         ctx.ui.notify(
@@ -53,7 +53,7 @@ export default function scafstak(pi: ExtensionAPI) {
         .split(/\s+/)
         .filter((s) => s.length > 0);
 
-      const templatesDir = templateRoot(import.meta.url);
+      const templatesDir = templateRoot();
 
       try {
         // Ticket #11: the AI authoring flow. The skeleton is created here;
