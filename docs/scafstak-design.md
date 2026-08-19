@@ -43,7 +43,9 @@ Distribution: `pi install git:github.com/<owner>/pi_scaffold` when public.
 
 1. Select **stack** (bevy, phaser, …)
 2. Select **framework version** — only when stack has >1 template
-3. Template questionnaire (template's own questions, defaults pre-filled)
+3. **Project name** (the one text input). Template questions with a `default`
+   are answered silently from that default; one with no default fails loudly
+   rather than prompting (#23)
 4. Summary confirm
 5. Scaffold: copy `files/`, substitute `{{var}}`, build FOUNDATION artifacts
 6. `git init` + **first commit** (`scaffold: initial project`) — always
@@ -88,20 +90,25 @@ Non-TUI mode (RPC/print): clean error, no hang.
 
 ## Wizard questions
 
-**Generic (every stack)**: project name · target dir (default `./<name>`) ·
-framework version (when >1) · verify choice.
+**Generic (every stack)**: project name (one text input; target dir derived
+`./<project-name>`; framework version (when >1) a select; verify choice a
+select). No other text prompt. Template questions with a `default` are answered
+silently from that default — no prompt. A template question with **no** default
+fails loudly ("question X has no answer and no default") instead of prompting
+(#23). The GitHub repo name (create via `gh` flow) is derived as kebab-case of
+the project name, not prompted.
 
-**Bevy 0.19 (native/web)**:
+**Bevy 0.19 (native/web)** — silent defaults:
 
 - Window title (default: project name)
 - Crate name (default: snake_case project name)
-- Build target: Native (`cargo run`, window via WSLg) / Web (trunk serve)
+- Build target: Native / Web (default: native, not prompted; edit post-scaffold)
 
-**Phaser 4 (JS)**:
+**Phaser 4 (JS)** — silent defaults:
 
 - Game title (default: project name)
-- Canvas size (default 960×480)
-- npm package name (default: project name)
+- Canvas size (default 960×480, not prompted; edit post-scaffold)
+- npm package name (default: kebab-case project name)
 
 ## Template anatomy
 
